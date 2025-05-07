@@ -9,7 +9,6 @@ from rest_framework.authtoken.models import Token
 class RegistrationView(APIView):
     permission_classes=[]
     authentication_classes=[]
-    
     def post(self, request):
         try:    
             serializer = UserRegistrationSerializer(data=request.data)
