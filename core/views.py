@@ -104,7 +104,6 @@ class ProjectView(APIView):
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
-            
 class ProjectUpdateView(APIView):
     authentication_classes=[TokenAuthentication]
     permission_classes=[IsAuthenticated]
@@ -140,6 +139,48 @@ class ProjectUpdateView(APIView):
             return Response({
                 'status': 'error',
                 'message': f'Multiple Projects found with ID {pk}',
+                'exception': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                  
+class ProjectDeleteView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
+    
+    def delete(self, request, pk=None):
+        try:
+            if not pk:
+                return Response({
+                    'status': 'error',
+                    'message': 'Project ID is required to perform Delete Action!'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            project_obj = Project.objects.get(pk=pk)            
+            deleted_count, deleted_objs = project_obj.delete()
+            
+            return Response({
+                'status': 'success',
+                'message': f'Project with ID {pk} deleted.',
+                'delete_count': deleted_count,
+                'deleted_data': [str(deleted_objs.keys()) for item in deleted_objs.keys()]
+            })
+                
+        except Project.DoesNotExist as e:
+            return Response({
+                'status': 'error',
+                'message': f'Project with ID {pk} does not exist.',
+                'exception': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Project.MultipleObjectsReturned as e:
+            return Response({
+                'status': 'error',
+                'message': f'Multiple Projects found with ID {pk}.',
                 'exception': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
             
