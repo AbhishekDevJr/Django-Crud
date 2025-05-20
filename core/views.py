@@ -103,3 +103,48 @@ class ProjectView(APIView):
                 'status': 'error',
                 'message': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+            
+class ProjectUpdateView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
+    
+    def patch(self, request, pk=None):
+        try:
+            if not pk:
+                return Response({
+                    'status': 'error',
+                    'message': 'Project ID is required!'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            project_obj = Project.objects.get(pk=pk)
+            
+            project_serialized = ProjectSerializer(project_obj, data=request.data, partial=True)
+            
+            if project_serialized.is_valid():
+                project_serialized.save()
+                return Response({
+                    'status': 'success',
+                    'message': f"Project with ID {pk} Updated.",
+                    'data': ProjectSerializer(project_obj).data
+                }, status=status.HTTP_200_OK)
+            
+        except Project.DoesNotExist as e:
+            return Response({
+                'status': 'error',
+                'message': f'Project with ID {pk} does not exists',
+                'exception': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Project.MultipleObjectsReturned as e:
+            return Response({
+                'status': 'error',
+                'message': f'Multiple Projects found with ID {pk}',
+                'exception': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
