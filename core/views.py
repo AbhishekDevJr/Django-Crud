@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from . models import Project
-from . serializers import ProjectListSerializer, ProjectSerializer
+from . serializers import ProjectListSerializer, ProjectSerializer, TaskSerializer
 
 class ProjectListView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -188,4 +188,37 @@ class ProjectDeleteView(APIView):
             return Response({
                 'status': 'error',
                 'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+class TaskView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            if not request.data:
+                return Response({
+                    "status": "error",
+                    "message": "Request Data is Invalid."
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            task_deserialized = TaskSerializer(data=request.data, context={"request": request})
+            
+            if task_deserialized.is_valid():
+                task_obj = task_deserialized.save()
+                return Response({
+                    "status": "success",
+                    "message": f"Task record created successfully with title: {task_obj.title}"
+                }, status=status.HTTP_201_CREATED)
+                
+            return Response({
+                "status": "error",
+                "message": f"Request data is invalid",
+                "data": request.data
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

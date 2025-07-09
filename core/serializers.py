@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project
+from .models import Project, Task
 
 class ProjectSerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()
@@ -25,3 +25,13 @@ class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['title', 'description', 'created_by', 'created_at']
+        
+class TaskSerializer(serializers.ModelSerializer):
+    
+    def create(self, validated_data):
+        user = self.context['request'].user
+        return Task.objects.create(**validated_data, assigned_to=user)
+    
+    class Meta:
+        model = Task
+        fields = ["title", "description", "project", "due_date", "status", "created_at"]
