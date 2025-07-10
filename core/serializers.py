@@ -35,3 +35,17 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = ["title", "description", "project", "due_date", "status", "created_at"]
+        
+class TaskListSerializer(serializers.ModelSerializer):
+    project = serializers.SerializerMethodField()
+    assigned_to = serializers.SerializerMethodField()
+    
+    def get_project(self, model_instance):
+        return model_instance.project.title if model_instance.project else "N/A"
+    
+    def get_assigned_to(self, model_instance):
+        return model_instance.assigned_to.username if model_instance.assigned_to else "N/A"
+    
+    class Meta:
+        model = Task
+        fields = "__all__"

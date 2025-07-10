@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from . models import Project
-from . serializers import ProjectListSerializer, ProjectSerializer, TaskSerializer
+from . models import Project, Task
+from . serializers import ProjectListSerializer, ProjectSerializer, TaskSerializer, TaskListSerializer
 
 class ProjectListView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -216,6 +216,72 @@ class TaskView(APIView):
                 "message": f"Request data is invalid",
                 "data": request.data
             }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    def get(self, request, pk):
+        try:
+            if not pk:
+                return Response({
+                    "status": "error",
+                    "message": f"Task ID not found in the Request."
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            task_instance = Task.objects.get(id=pk)
+            
+            task_serialized = TaskListSerializer(task_instance, many=False)
+            
+            return Response({
+                "status": "success",
+                "message": f"Task data found for ID: {pk}",
+                "data": task_serialized.data
+            })
+            
+        except Task.DoesNotExist as e:
+            return Response({
+                "status": "error",
+                "message": f"No Task data found for ID: {pk}.",
+                "error_message": f"{str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Task.MultipleObjectsReturned as e:
+            return Response({
+                "status": "error",
+                "message": f"Multiple Data found for single Task ID: {pk}",
+                "error_message": f"{str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+class TaskListView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            task_qs = Task.objects.filter()
+            
+            if task_qs.exists():
+                task_serialized = TaskListSerializer(task_qs, many=True)
+                
+                return Response({
+                    "status": "success",
+                    "message": f"Successfully fetched Task Data.",
+                    "data": task_serialized.data
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "status": "success",
+                    "message": f"No Task data found."
+                }, status=status.HTTP_200_OK)
             
         except Exception as e:
             return Response({
