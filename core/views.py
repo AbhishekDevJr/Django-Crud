@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from . models import Project, Task
-from . serializers import ProjectListSerializer, ProjectSerializer, TaskSerializer, TaskListSerializer
+from . serializers import ProjectListSerializer, ProjectSerializer, TaskSerializer, TaskListSerializer, ProjectFilesSerializer
 
 class ProjectListView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -288,3 +288,76 @@ class TaskListView(APIView):
                 "status": "error",
                 "message": f"{str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+class TaskUpdateView(APIView):
+    authentication_classes=[TokenAuthentication]
+    permission_classes=[IsAuthenticated]
+    
+    def patch(self, request, pk):
+        try:
+            if not pk:
+                return Response({
+                    "status": "error",
+                    "message": f"Task ID is required for Task Update."
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+            task_obj = Task.objects.get(pk=pk)
+            task_serialized = TaskSerializer(task_obj, data=request.data, context={"request": request}, partial=True)
+            
+            if task_serialized.is_valid():
+                task_saved_obj = task_serialized.save()
+                
+                return Response({
+                    "status": "success",
+                    "message": f"Task record updated with ID {pk}",
+                }, status=status.HTTP_200_OK)
+            
+            return Response({
+                "status": "error",
+                "message": f"Error while updating Task Data with ID {pk}",
+                "errors": task_serialized.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Task.MultipleObjectsReturned as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+        except Task.DoesNotExist as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)
+            
+class ProjectFileUploadView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            project_file_serialized = ProjectFilesSerializer(data=request.data)
+            
+            if project_file_serialized.is_valid():
+                project_file_serialized.save()
+                return Response({
+                    "status": "success",
+                    "message": project_file_serialized.data
+                }, status=status.HTTP_201_CREATED)
+
+            return Response({
+                "status": "error",
+                "message": str(project_file_serialized.errors)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        except Exception as e:
+            return Response({
+                "status": "error",
+                "message": f"{str(e)}"
+            }, status=status.HTTP_501_NOT_IMPLEMENTED)

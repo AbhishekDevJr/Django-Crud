@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Project, Task
+from .models import Project, Task, ProjectFiles
+from datetime import datetime
 
 class ProjectSerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()
@@ -30,11 +31,29 @@ class TaskSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         user = self.context['request'].user
-        return Task.objects.create(**validated_data, assigned_to=user)
+        created_at = datetime.now()
+        return Task.objects.create(**validated_data, assigned_to=user, created_at=created_at, project=validated_data["project"])
+    
+    def update(self, instance, validated_data):
+        assigned_to = self.context["request"].user
+        
+        instance.title = validated_data.get("title", instance.title)
+        instance.description = validated_data.get("description", instance.description)
+        instance.due_date = validated_data.get("due_date", instance.due_date)
+        instance.status = validated_data.get("status", instance.status)
+        
+        if "project" in validated_data:
+            project = validated_data.get("project", instance.project)
+            instance.project = project
+        
+        instance.assigned_to = assigned_to
+        instance.save()
+        return instance
     
     class Meta:
         model = Task
-        fields = ["title", "description", "project", "due_date", "status", "created_at"]
+        fields = ["title", "description", "project", "due_date", "status"]
+        read_only_fields = ["created_at", "assigned_to"]
         
 class TaskListSerializer(serializers.ModelSerializer):
     project = serializers.SerializerMethodField()
@@ -49,3 +68,9 @@ class TaskListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = "__all__"
+        
+        
+class ProjectFilesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectFiles
+        fields = ['id', 'project', 'file', 'uploaded_at']
